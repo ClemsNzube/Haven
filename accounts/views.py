@@ -5,6 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from accounts.models import CustomUser
 from .serializers import *
+from django.db import transaction
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import serializers
 
@@ -72,3 +73,25 @@ class LogoutAPI(generics.GenericAPIView):
             return Response({"message": "User logged out successfully."}, status=200)
         except Exception as e:
             return Response({"error": "Invalid refresh token."}, status=400)
+        
+
+class ChangePasswordView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ChangePasswordSerializer
+
+    def create(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+
+        if not user.check_password(serializer.validated_data['old_password']):
+            return Response({'error': 'Invalid old password'}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            user.set_password(serializer.validated_data['new_password'])
+            user.save()
+
+            refresh_token = RefreshToken.for_user(user)
+
+        return Response({'message': 'Password changed successfully.', 'refresh_token': str(refresh_token)}, status=status.HTTP_200_OK)
