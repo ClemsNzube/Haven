@@ -24,3 +24,7 @@ class UserSerializer(serializers.ModelSerializer):
   class Meta:
     model = CustomUser
     fields = ('id', 'email', 'fullname', 'address', 'phone_number')
+
+
+class LogoutSerializer(serializers.Serializer):
+    refresh_token = serializers.CharField()
