@@ -95,3 +95,9 @@ class ChangePasswordView(generics.CreateAPIView):
             refresh_token = RefreshToken.for_user(user)
 
         return Response({'message': 'Password changed successfully.', 'refresh_token': str(refresh_token)}, status=status.HTTP_200_OK)
+    
+
+
+class UserListAPIView(generics.ListAPIView):
+    queryset = CustomUser.objects.all()
+    serializer_class = UserSerializer
