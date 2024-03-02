@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'drf_yasg',
     'accounts',
-    'lease',
+    'sale',
     'rental',
     'rest_framework',
     'rest_framework_simplejwt',
