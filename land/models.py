@@ -14,7 +14,7 @@ class Land(models.Model):
     is_available = models.BooleanField(default=True)
     reason_for_selling = models.TextField(null=True, blank=True)
     plot_number = models.CharField(max_length=100, null=True, blank=True)
-    time_line = models.DateField(max_length=100, null=True, blank=True, default="Not Available") # desired timeline for closing sales
+    time_line = models.DateTimeField(max_length=100, null=True, blank=True, default="Not Available") # desired timeline for closing sales
 
     def __str__(self):
         return self.location

@@ -4,30 +4,18 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics, status
 from rest_framework.response import Response
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
+from django.utils.timezone import make_aware
+
 
 # Create your views here.
 
 class LandList(generics.ListAPIView):
-    queryset = Land.objects.all()
     serializer_class = LandSerializer
 
-    def list(self, request, *args, **kwargs):
-        # Call the list method of the parent class
-        response = super().list(request, *args, **kwargs)
-
-        # Get the queryset of lands from the response data
-        lands = response.data
-
-        # Check each land's timeline and set it to not available if the timeline has passed
-        for land in lands:
-            land_id = land['id']  # Assuming 'id' is the field name for the primary key
-            land_obj = Land.objects.get(id=land_id)
-            if land_obj.timeline and land_obj.timeline < timezone.now():
-                land_obj.is_available = False
-                land_obj.save()
-
-        # Return the modified response
-        return response
+    def get_queryset(self):
+        # Filter the queryset to include only lands where is_available is True
+        return Land.objects.filter(is_available=True, time_line__gte=timezone.now())
     
 
 class UserLandList(generics.ListAPIView):
@@ -44,7 +32,18 @@ class LandSellAPIView(generics.CreateAPIView):
     serializer_class = LandSellSerializer
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        # Check if the timeline has passed
+        if 'time_line' in self.request.data:
+            time_line = parse_datetime(self.request.data['time_line'])
+            if time_line:
+                # Convert offset-naive datetime to aware datetime
+                timeline_aware = make_aware(time_line)
+                if timeline_aware < timezone.now():
+                    # If timeline has passed, set is_available to False
+                    serializer.validated_data['is_available'] = False
+
+        # Set the owner of the land to the authenticated user
+        serializer.save(owner=self.request.user)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
