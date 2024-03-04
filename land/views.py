@@ -17,7 +17,7 @@ class LandList(generics.ListAPIView):
         # Filter the queryset to include only lands where is_available is True
         return Land.objects.filter(is_available=True, time_line__gte=timezone.now())
     
-
+ 
 class UserLandList(generics.ListAPIView):
     serializer_class = LandSerializer
     permission_classes = [IsAuthenticated]
