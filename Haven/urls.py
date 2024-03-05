@@ -43,6 +43,7 @@ urlpatterns = [
     path('api/auth/', include('accounts.urls')),
     path('house/', include('house.urls')),
     path('land/', include('land.urls')),
+    path('buy/', include('buy.urls')),
     # path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     path('', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
