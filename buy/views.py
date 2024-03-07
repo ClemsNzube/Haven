@@ -22,7 +22,7 @@ class BuyLandCreateAPIView(generics.ListCreateAPIView):
 
 class BuyHouseCreateAPIView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = BuyLandSerializer
+    serializer_class = BuyHouseSerializer
     queryset = BuyLand.objects.all()
 
     def create(self, request, *args, **kwargs):
