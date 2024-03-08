@@ -17,6 +17,7 @@ class House(models.Model):
     sale_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     photos = models.ImageField(upload_to='house_photos/', null=True, blank=True)  # High-quality photos
     video_tour = models.URLField(null=True, blank=True)  # Optional video tour
+    is_available = models.BooleanField(default=True)
 
 
     def __str__(self):
