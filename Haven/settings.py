@@ -163,3 +163,5 @@ SWAGGER_SETTINGS = {
     'SCHEMA_PROTOCOL': 'https',
     'USE_HTTPS': True,
 }
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
