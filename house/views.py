@@ -67,7 +67,7 @@ class ManageHouseLease(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class ListLeasedHouses(APIView):
+class ListHousesForRental(APIView):
     def get(self, request, format=None):
         leased_houses = House.objects.filter(is_for_sale=False)
         serializer = HouseSerializer(leased_houses, many=True)
@@ -79,7 +79,7 @@ class ListHousesForSale(APIView):
         serializer = HouseSerializer(houses_for_sale, many=True)
         return Response(serializer.data)
 
-class ListHousesForRental(APIView):
+class ListLeasedHouses(APIView):
     def get(self, request, format=None):
         houses_for_rental = House.objects.all()
         serializer = HouseLeaseSerializer(houses_for_rental, many=True)
