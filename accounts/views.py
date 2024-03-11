@@ -66,6 +66,9 @@ class VerifyTokenView(APIView):
             return JsonResponse({'message': 'Token verified successfully'}, status=status.HTTP_200_OK)
         else:
             return JsonResponse({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+
 
 
 class UserLoginView(generics.GenericAPIView):
@@ -85,7 +88,10 @@ class UserLoginView(generics.GenericAPIView):
             return Response({'error': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not user.is_active:
-            return Response({'error': 'This user is currently not active. Verify your account'}, status=status.HTTP_400_BAD_REQUEST)
+            # Send verification email
+            verification_token = generate_verification_token(user)
+            send_verification_email(user, verification_token)
+            return Response({'error': 'This user is currently not active. Verification email has been sent. Verify your account'}, status=status.HTTP_400_BAD_REQUEST)
 
         authenticated_user = authenticate(email=email, password=password)
         if not authenticated_user:
@@ -98,7 +104,16 @@ class UserLoginView(generics.GenericAPIView):
             'access_token': str(refresh.access_token),
             'refresh_token': str(refresh),
         }, status=status.HTTP_200_OK)
-    
+
+def generate_verification_token(user):
+    # Generate and return a random verification token (e.g., 5-digit number)
+    return random.randint(10000, 99999)
+
+def send_verification_email(user, verification_token):
+    # Craft and send verification email
+    subject = 'Account Verification'
+    message = f'Your verification token is: {verification_token}'
+    send_mail(subject, message, settings.EMAIL_HOST_USER, [user.email])
 
 class LogoutAPI(generics.GenericAPIView):
     permission_classes = (IsAuthenticated,)
