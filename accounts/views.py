@@ -4,10 +4,14 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from accounts.models import CustomUser
+from django.conf import settings
 from .serializers import *
 from django.db import transaction
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework import serializers
+from django.core.cache import cache
+from django.core.mail import send_mail
+from django.http import JsonResponse
+import random
 
 class UserRegistrationView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
@@ -16,14 +20,52 @@ class UserRegistrationView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+            token = self.generate_token()
+            cache_key = f"registration_token_{user.email}"
+            cache.set(cache_key, token, timeout=300)  # Cache token for 5 minutes
+            self.send_verification_email(user.email, token)
             refresh = RefreshToken.for_user(user)
-            return Response({
+            response_data = {
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
                 'user': serializer.data
-            }, status=status.HTTP_201_CREATED)
+            }
+            message = "A verification email has been sent. Please check your email to verify your account."
+            response_data['message'] = message
+            return Response(response_data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def generate_token(self):
+        return ''.join(random.choices('0123456789', k=5))
+
+    def send_verification_email(self, email, token):
+        subject = "Verification Token"
+        message = f"Your verification token is: {token}"
+        send_mail(subject, message, settings.EMAIL_HOST_USER, [email])
+
     
+
+
+class VerifyTokenView(APIView):
+    def post(self, request, *args, **kwargs):
+        token = request.data.get('token', None)
+        if not token:
+            return JsonResponse({'error': 'Token is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user_email = request.user.email
+        cache_key = f"registration_token_{user_email}"
+        cached_token = cache.get(cache_key)
+        if not cached_token:
+            return JsonResponse({'error': 'Token has expired or is invalid'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if token == cached_token:
+            # Update user's is_active status
+            user = CustomUser.objects.get(email=user_email)
+            user.is_active = True
+            user.save()
+            return JsonResponse({'message': 'Token verified successfully'}, status=status.HTTP_200_OK)
+        else:
+            return JsonResponse({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserLoginView(generics.GenericAPIView):
