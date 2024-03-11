@@ -45,28 +45,34 @@ class UserRegistrationView(generics.CreateAPIView):
 
     
 
+class VerifyTokenView(generics.CreateAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = VerifyTokenSerializer
 
-class VerifyTokenView(APIView):
     def post(self, request, *args, **kwargs):
-        token = request.data.get('token', None)
-        if not token:
-            return JsonResponse({'error': 'Token is required'}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         
-        user_email = request.user.email
+        token = serializer.validated_data.get('token')
+        user_email = serializer.validated_data.get('email')  # Extract email from serializer
+        
         cache_key = f"registration_token_{user_email}"
         cached_token = cache.get(cache_key)
+        
         if not cached_token:
             return JsonResponse({'error': 'Token has expired or is invalid'}, status=status.HTTP_400_BAD_REQUEST)
         
         if token == cached_token:
             # Update user's is_active status
-            user = CustomUser.objects.get(email=user_email)
-            user.is_active = True
-            user.save()
-            return JsonResponse({'message': 'Token verified successfully'}, status=status.HTTP_200_OK)
+            try:
+                user = CustomUser.objects.get(email=user_email)
+                user.is_active = True
+                user.save()
+                return JsonResponse({'message': 'Token verified successfully'}, status=status.HTTP_200_OK)
+            except CustomUser.DoesNotExist:
+                return JsonResponse({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
         else:
             return JsonResponse({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
-        
 
 
 
