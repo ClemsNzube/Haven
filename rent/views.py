@@ -7,7 +7,7 @@ from house.models import House
 from .serializers import RentHouseSerializer
 
 
-
+# API for users to rent house
 class RentHouseCreateAPIView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = RentHouseSerializer
