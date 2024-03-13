@@ -164,3 +164,62 @@ class ChangePasswordView(generics.CreateAPIView):
 class UserListAPIView(generics.ListAPIView):
     queryset = CustomUser.objects.all()
     serializer_class = UserSerializer
+
+
+class RequestPasswordResetView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        email = request.data.get('email')
+        try:
+            user = CustomUser.objects.get(email=email)
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Generate OTP
+        otp = get_random_string(length=6, allowed_chars='0123456789')
+
+        # Store OTP and its expiry time in the user's model
+        user.reset_password_token = otp
+        user.reset_token_created_at = timezone.now()
+        user.save()
+
+        # Send OTP to the user's email
+        send_password_reset_email(email, otp)
+        return Response({'message': 'An OTP has been sent to your email for password reset.'}, status=status.HTTP_200_OK)
+
+
+class ConfirmPasswordResetView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        email = request.data.get('email')
+        otp = request.data.get('otp')
+        
+        try:
+            user = CustomUser.objects.get(email=email)
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if OTP and its expiry are valid
+        if user.reset_password_token != otp:
+            return Response({'error': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # OTP validity time is set to 5 minutes
+        if timezone.now() > user.reset_token_created_at + timedelta(minutes=5):
+            return Response({'error': 'OTP has expired.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Clear the OTP and its expiry time
+        user.reset_password_token = None
+        user.reset_token_created_at = None
+        user.save()
+
+        # Generate a new password for the user or allow them to set a new password
+        # Here you can send a new temporary password or allow the user to set a new one via another endpoint
+        return Response({'message': 'Please reset your password.'}, status=status.HTTP_200_OK)
+
+
+def send_password_reset_email(email, otp):
+    subject = 'Password Reset OTP'
+    message = f'Your OTP for password reset is: {otp}'
+    send_mail(subject, message, settings.EMAIL_HOST_USER, [email])
