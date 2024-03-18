@@ -12,4 +12,5 @@ urlpatterns = [
     path('verify-token/', VerifyTokenView.as_view(), name='verify_token'),
     path('users-list/', UserListAPIView.as_view(), name='user_list'),
     path('confirm-password/', ConfirmPasswordResetView.as_view(), name='confirm_password_reset'),
+    
 ]
