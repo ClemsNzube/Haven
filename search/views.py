@@ -1,32 +1,36 @@
-from rest_framework import generics
+from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import SearchCriteria
+from rest_framework import status
 from .serializers import SearchCriteriaSerializer
-from house.models import House
-from land.models import Land
+from .models import SearchCriteria
 
-class SearchAPIView(generics.ListAPIView):
-    serializer_class = SearchCriteriaSerializer
-
-    def get_queryset(self):
-        # Extract search parameters from request
-        location = self.request.query_params.get('location')
-        min_price = self.request.query_params.get('min_price')
-        max_price = self.request.query_params.get('max_price')
-        house_type = self.request.query_params.get('house_type')
-        land_plot_type = self.request.query_params.get('land_plot_type')
-        # Add more parameters as needed
-
-        # Perform filtering based on search parameters
-        houses = House.objects.filter(location__icontains=location, 
-                                       price__gte=min_price, 
-                                       price__lte=max_price,
-                                       house_type=house_type)
-        lands = Land.objects.filter(location__icontains=location, 
-                                    price__gte=min_price, 
-                                    price__lte=max_price,
-                                    plot_type=land_plot_type)
+class SearchAPIView(APIView):
+    def get(self, request, *args, **kwargs):
+        # Deserialize and validate the search parameters
+        serializer = SearchCriteriaSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-        # You can further filter based on additional criteria here
+        # Extract validated search parameters
+        location = serializer.validated_data.get('location')
+        price_min = serializer.validated_data.get('price_min')
+        price_max = serializer.validated_data.get('price_max')
+        house_type = serializer.validated_data.get('house_type')
+        land_plot_type = serializer.validated_data.get('land_plot_type')
 
-        return houses, lands
+        # Perform search based on the extracted parameters
+        queryset = SearchCriteria.objects.all()  
+        if location:
+            queryset = queryset.filter(location__icontains=location)
+        if price_min:
+            queryset = queryset.filter(price__gte=price_min)
+        if price_max:
+            queryset = queryset.filter(price__lte=price_max)
+        if house_type:
+            queryset = queryset.filter(house_type=house_type)
+        if land_plot_type:
+            queryset = queryset.filter(land_plot_type=land_plot_type)
+
+        # Serialize the queryset and return the response
+        serializer = SearchCriteriaSerializer(queryset, many=True)  
+        return Response(serializer.data, status=status.HTTP_200_OK)
