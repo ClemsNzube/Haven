@@ -16,6 +16,7 @@ from django.core.mail import send_mail
 from django.http import JsonResponse
 import random
 
+
 class UserRegistrationView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
 
